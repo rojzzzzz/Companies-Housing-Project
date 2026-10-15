@@ -1,0 +1,180 @@
+version: 2
+sources:
+  - name: 'staging'
+    schema: 'staging'
+    description: 'Tablas cargadas por el pipeline. No contienen timestamp de extracción.'
+    tables:
+      - name: 'company'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'company_number'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+          - name: 'company_name'
+            data_tests:
+              - 'not_null'
+          - name: 'date_of_creation'
+            data_tests:
+              - 'not_null'
+      - name: 'previous_company_names'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'company_number'
+                  - 'effective_from'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'effective_from'
+            data_tests:
+              - 'not_null'
+          - name: 'name'
+            data_tests:
+              - 'not_null'
+      - name: 'sic_code'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'company_number'
+                  - 'sic_code'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'sic_code'
+            data_tests:
+              - 'not_null'
+      - name: 'officers'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'link_self'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'link_self'
+            data_tests:
+              - 'not_null'
+          - name: 'officer_role'
+            data_tests:
+              - 'not_null'
+          - name: 'appointed_on'
+            data_tests:
+              - 'not_null'
+      - name: 'psc'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'link_self'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'link_self'
+            data_tests:
+              - 'not_null'
+          - name: 'notified_on'
+            data_tests:
+              - 'not_null'
+          - name: 'ceased'
+            data_tests:
+              - 'not_null'
+          - name: 'kind'
+            data_tests:
+              - 'not_null'
+      - name: 'psc_nature'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'psc_id'
+                  - 'nature_of_control'
+        columns:
+          - name: 'psc_id'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''psc'')'
+                    field: 'link_self'
+          - name: 'nature_of_control'
+            data_tests:
+              - 'not_null'
+      - name: 'filings'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'company_number'
+                  - 'transaction_id'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'transaction_id'
+            data_tests:
+              - 'not_null'
+          - name: 'type'
+            data_tests:
+              - 'not_null'
+          - name: 'date'
+            data_tests:
+              - 'not_null'
+          - name: 'category'
+            data_tests:
+              - 'not_null'
+      - name: 'capital'
+        data_tests:
+          - unique_grain:
+              arguments:
+                columns:
+                  - 'company_number'
+                  - 'transaction_id'
+                  - 'currency'
+        columns:
+          - name: 'company_number'
+            data_tests:
+              - 'not_null'
+              - relationships:
+                  arguments:
+                    to: 'source(''staging'', ''company'')'
+                    field: 'company_number'
+          - name: 'transaction_id'
+            data_tests:
+              - 'not_null'
+          - name: 'currency'
+            data_tests:
+              - 'not_null'
+          - name: 'figure'
+            data_tests:
+              - 'not_null'

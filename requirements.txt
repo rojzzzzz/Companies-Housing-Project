@@ -1,0 +1,12 @@
+httpx>=0.28,<1
+pandas>=2.2,<4
+python-dotenv>=1,<2
+PyYAML>=6,<7
+psycopg2-binary>=2.9,<3
+
+dbt-core==1.11.15
+dbt-postgres==1.11.0
+
+pytest>=8,<10
+pytest-cov>=6,<8
+ruff>=0.14,<1

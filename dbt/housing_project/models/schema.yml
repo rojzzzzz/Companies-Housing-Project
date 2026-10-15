@@ -1,0 +1,538 @@
+version: 2
+models:
+  - name: 'int_company_observation'
+    description: 'Una fila por empresa y día observado por dbt; retiene observaciones previas.'
+    columns:
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+      - name: 'observed_date'
+        data_tests:
+          - 'not_null'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'observed_date'
+  - name: 'int_psc_observation'
+    description: 'Una fila por entrada PSC y día observado. Los derechos están en int_psc_control_observation.'
+    columns:
+      - name: 'psc_key'
+        data_tests:
+          - 'not_null'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'observed_date'
+        data_tests:
+          - 'not_null'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'psc_key'
+              - 'observed_date'
+  - name: 'dim_company'
+    description: 'Últimos atributos observados de cada empresa. Dimensión tipo 1; no representa atributos históricos.'
+    columns:
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_date'
+    description: 'Calendario diario con claves YYYYMMDD y atributos de mes.'
+    columns:
+      - name: 'date_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'date_day'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_obligation_type'
+    description: 'Obligaciones disponibles: accounts y confirmation_statement.'
+    columns:
+      - name: 'obligation_type_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_officer'
+    description: 'Identidad de origen al nivel del nombramiento; no resuelve personas entre empresas.'
+    columns:
+      - name: 'officer_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_officer_role'
+    description: 'Source officer role codes with readable display labels.'
+    columns:
+      - name: 'officer_role_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'role_label'
+        description: 'Title-cased source role with hyphens replaced by spaces.'
+        data_tests:
+          - 'not_null'
+  - name: 'dim_psc'
+    description: 'Últimos atributos de cada entrada PSC; identidad local a empresa.'
+    columns:
+      - name: 'psc_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_control_nature'
+    description: 'Historical source control-right codes with display labels and categories.'
+    columns:
+      - name: 'control_nature_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'control_nature_label'
+        description: 'Readable source code; preserves ranges and trust or firm qualifiers.'
+        data_tests:
+          - 'not_null'
+      - name: 'control_category'
+        description: 'Display grouping only; unfamiliar source codes remain Other.'
+        data_tests:
+          - 'not_null'
+          - accepted_values:
+              arguments:
+                values: ['Ownership', 'Voting', 'Appointment rights', 'Significant influence', 'Other']
+  - name: 'dim_filing_type'
+    description: 'Combinación de código, categoría y subcategoría de filing.'
+    columns:
+      - name: 'filing_type_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_currency'
+    description: 'Single-column currency lookup; currency_key contains the currency code. No currency conversion.'
+    columns:
+      - name: 'currency_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_sic'
+    description: 'Single-column SIC lookup; sic_key contains the five-character code. No external descriptions.'
+    columns:
+      - name: 'sic_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'dim_company_name_history'
+    description: 'Nombres anteriores por empresa y fecha de inicio; el nombre actual reside en dim_company.'
+    columns:
+      - name: 'company_name_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+  - name: 'bridge_company_sic'
+    description: 'Una fila por empresa y SIC. Evitar sumar hechos después de expandir este puente.'
+    columns:
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'sic_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_sic'')'
+                field: 'sic_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'sic_key'
+  - name: 'bridge_psc_control_nature'
+    description: 'Un derecho por relación PSC observada; no multiplicar el conteo de PSC.'
+    columns:
+      - name: 'psc_relationship_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''fct_company_psc_relationship'')'
+                field: 'psc_relationship_key'
+      - name: 'control_nature_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_control_nature'')'
+                field: 'control_nature_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'psc_relationship_key'
+              - 'control_nature_key'
+  - name: 'fct_company_obligation_snapshot'
+    description: 'Empresa × obligación × día observado. La fecha no implica una extracción nueva.'
+    columns:
+      - name: 'obligation_snapshot_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'obligation_type_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_obligation_type'')'
+                field: 'obligation_type_key'
+      - name: 'observed_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'due_date_key'
+        data_tests:
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'follow_up_status'
+        data_tests:
+          - 'not_null'
+          - accepted_values:
+              arguments:
+                values:
+                  - 'review_source_conflict'
+                  - 'overdue'
+                  - 'unknown'
+                  - 'due_soon'
+                  - 'later'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'obligation_type_key'
+              - 'observed_date'
+  - name: 'fct_officer_appointment'
+    description: 'Un nombramiento por link_self. Vigencia: appointed_on inclusivo, resigned_on exclusivo.'
+    columns:
+      - name: 'appointment_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'officer_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_officer'')'
+                field: 'officer_key'
+      - name: 'officer_role_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_officer_role'')'
+                field: 'officer_role_key'
+      - name: 'appointed_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'resigned_date_key'
+        data_tests:
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+  - name: 'fct_company_psc_relationship'
+    description: 'Una relación empresa–PSC por día observado, incluyendo relaciones cesadas.'
+    columns:
+      - name: 'psc_relationship_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'psc_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_psc'')'
+                field: 'psc_key'
+      - name: 'observed_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'notified_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'ceased_date_key'
+        data_tests:
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'psc_key'
+              - 'observed_date'
+  - name: 'fct_filing'
+    description: 'Una presentación por empresa y transacción. La fecha de presentación no es la fecha del evento.'
+    columns:
+      - name: 'filing_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'filing_type_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_filing_type'')'
+                field: 'filing_type_key'
+      - name: 'filed_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'transaction_id'
+  - name: 'fct_capital_declaration'
+    description: 'Una declaración por empresa, transacción y moneda. Importe declarado no aditivo en el tiempo.'
+    columns:
+      - name: 'capital_declaration_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'filing_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''fct_filing'')'
+                field: 'filing_key'
+      - name: 'filing_type_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_filing_type'')'
+                field: 'filing_type_key'
+      - name: 'filed_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+      - name: 'currency_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_currency'')'
+                field: 'currency_key'
+      - name: 'declared_amount'
+        data_tests:
+          - 'not_null'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'transaction_id'
+              - 'currency_key'
+  - name: 'mart_company_obligations'
+    description: '¿Qué empresa necesita atención por una obligación vencida o próxima a vencer? Grano: empresa × obligación × día observado.'
+    columns:
+      - name: 'obligation_snapshot_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'mart_governance_monthly'
+    description: '¿Cómo cambia la composición de la dirección? Grano: empresa × mes. Incluye meses sin eventos y marca el mes parcial.'
+    columns:
+      - name: 'governance_month_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'month_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'month_start'
+  - name: 'mart_company_control'
+    description: '¿Quién tiene control significativo y mediante qué derechos? Grano: relación empresa–PSC × día observado, con derechos consolidados.'
+    columns:
+      - name: 'psc_relationship_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'mart_filing_activity_monthly'
+    description: '¿Dónde y cuándo se concentra la actividad registral? Grano: empresa × mes × categoría; meses sin presentaciones tienen cero.'
+    columns:
+      - name: 'filing_activity_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_company'')'
+                field: 'company_key'
+      - name: 'month_date_key'
+        data_tests:
+          - 'not_null'
+          - relationships:
+              arguments:
+                to: 'ref(''dim_date'')'
+                field: 'date_key'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'month_start'
+              - 'category'
+  - name: 'mart_declared_capital_history'
+    description: '¿Qué capital se declaró y qué declaraciones son comparables? Grano: empresa × filing × moneda. Diferencias nulas sin política aprobada.'
+    columns:
+      - name: 'capital_declaration_key'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+  - name: 'int_psc_control_observation'
+    description: 'Un derecho por PSC y día observado; conserva cambios futuros sin concatenar y separar strings.'
+    columns:
+      - name: 'psc_id'
+        data_tests:
+          - 'not_null'
+      - name: 'observed_date'
+        data_tests:
+          - 'not_null'
+      - name: 'nature_of_control'
+        data_tests:
+          - 'not_null'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'psc_id'
+              - 'observed_date'
+              - 'nature_of_control'
+  - name: 'int_company_months'
+    description: 'Calendario compartido: una fila por empresa y mes, desde su creación hasta la fecha de observación.'
+    columns:
+      - name: 'company_key'
+        data_tests:
+          - 'not_null'
+      - name: 'month_start'
+        data_tests:
+          - 'not_null'
+      - name: 'period_end'
+        data_tests:
+          - 'not_null'
+    data_tests:
+      - unique_grain:
+          arguments:
+            columns:
+              - 'company_key'
+              - 'month_start'
+seeds:
+  - name: 'capital_comparison_rules'
+    description: 'Reglas explícitas de comparabilidad. false hasta revisar la semántica del documento. Una corrección o fecha ambigua sigue bloqueando diferencias.'
+    columns:
+      - name: 'filing_type'
+        data_tests:
+          - 'not_null'
+          - 'unique'
+      - name: 'is_comparable'
+        data_tests:
+          - 'not_null'

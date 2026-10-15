@@ -1,0 +1,5 @@
+# Use consistent line endings across Windows, WSL, and Linux.
+* text=auto eol=lf
+
+# Preserve documentation images as binary files.
+*.png binary

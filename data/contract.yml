@@ -1,0 +1,362 @@
+version: 1
+
+contract:
+  name: Companies data API contract
+  base_url: "https://api.company-information.service.gov.uk/company"
+
+  owner:
+    name: Roberto Jerez
+    contact: jerezrobertojose@gmail.com
+
+  companies:
+    - name: Wild
+      code: '11740984'
+    - name: Fussy
+      code: '12462889'
+    - name: AKT London
+      code: '11211232'
+    - name: The Natural Deodorant Co
+      code: '09505635'
+
+  collection_endpoints:
+    officers: officers
+    filings: filing-history
+    persons_with_significant_control: persons-with-significant-control
+    
+  silver_schema:
+
+    company_info:
+      description: Tables containing general information from the company
+      tables:
+        company:
+          columns:
+          
+            company_number: string
+            company_name: string
+            company_status: string
+            company_type: string
+            jurisdiction: string
+            date_of_creation: date
+            can_file: boolean
+            has_been_liquidated: boolean
+            has_charges: boolean
+            has_insolvency_history: boolean
+            registered_office_is_in_dispute: boolean
+            undeliverable_registered_office_address: boolean
+            has_super_secure_pscs: boolean
+            last_full_members_list_date: date
+            accounting_reference_day: integer
+            accounting_reference_month: integer
+            last_accounts_made_up_to: date
+            last_accounts_period_start_on: date
+            last_accounts_period_end_on: date
+            last_accounts_type: string
+            next_accounts_due_on: date
+            next_accounts_period_start_on: date
+            next_accounts_period_end_on: date
+            next_accounts_overdue: boolean
+            accounts_next_due: date
+            accounts_next_made_up_to: date
+            accounts_overdue: boolean
+            confirmation_last_made_up_to: date
+            confirmation_next_due: date
+            confirmation_next_made_up_to: date
+            confirmation_overdue: boolean
+            address_line_1: string
+            address_line_2: string
+            locality: string
+            postal_code: string
+            country: string
+            etag: string
+            link_self: string
+            link_filing_history: string
+            link_officers: string
+            link_exemptions: string
+          quality:
+            primary_key: [company_number]
+            completeness:
+              - columns: [company_number, company_name, company_status, company_type, jurisdiction, date_of_creation,
+                  link_self]
+                min: 0.99
+                warning: 1.0
+              - columns: [address_line_1, locality, postal_code, country]
+                min: 0.95
+                warning: 1.0
+              - columns: [last_accounts_made_up_to, next_accounts_due_on, confirmation_next_due]
+                min: 0.95
+                warning: 1.0
+            uniqueness:
+              - columns: [company_number]
+                min: 0.99
+                warning: 1.0
+        previous_company_names:
+          columns:
+            ceased_on: date
+            effective_from: date
+            name: string
+            company_number: string
+          quality:
+            primary_key: [company_number, effective_from]
+            completeness:
+              - columns: [company_number, effective_from, ceased_on, name]
+                min: 0.99
+                warning: 1.0
+            uniqueness:
+              - columns: [company_number, effective_from]
+                min: 0.99
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 0.99
+                warning: 1.0
+        sic_code:
+          columns:
+            company_number: string
+            sic_code: string
+          quality:
+            primary_key: [company_number, sic_code]
+            completeness:
+              - columns: [company_number, sic_code]
+                min: 0.99
+                warning: 1.0
+            uniqueness:
+              - columns: [company_number, sic_code]
+                min: 0.99
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 0.99
+                warning: 1.0
+    filings:
+      description: Tables containing information about the filings of the company
+      tables:
+        capital:
+          columns:
+            transaction_id: string
+            currency: string
+            figure: numeric
+            company_number: string
+          quality:
+            candidate_key: [company_number, transaction_id, currency, figure]
+            candidate_key_status: 'provisional: no capital.csv was provided; validate this key against real capital
+
+              data or add a source row ID'
+            completeness:
+              - columns: [company_number, transaction_id, currency]
+                min: 0.99
+                warning: 1.0
+              - columns: [figure]
+                min: 0.98
+                warning: 1.0
+            uniqueness:
+              - columns: [company_number, transaction_id, currency, figure]
+                min: 0.98
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 0.99
+                warning: 1.0
+              - columns: [company_number, transaction_id]
+                references:
+                  table: filings.filings
+                  columns: [company_number, transaction_id]
+                min: 0.99
+                warning: 1.0
+        filings:
+          columns:
+            company_number: string
+            transaction_id: string
+            barcode: string
+            type: string
+            date: date
+            category: string
+            subcategory: string
+            description: string
+            pages: integer
+            paper_filed: boolean
+            action_date: date
+            description_value: string
+            change_date: date
+            officer_name: string
+            appointment_date: date
+            new_date: date
+            date_value: date
+            old_address: string
+            new_address: string
+            termination_date: date
+            made_up_date: date
+            link_self: string
+            document_metadata: string
+          quality:
+            primary_key: [company_number, transaction_id]
+            completeness:
+              - columns: [company_number, transaction_id, type, date, category, description]
+                min: 1.0
+                warning: 1.0
+              - columns: [pages, link_self, document_metadata]
+                min: 0.0
+                warning: 1.0
+              - columns: [barcode]
+                min: 0.0
+                warning: 0.95
+            uniqueness:
+              - columns: [company_number, transaction_id]
+                min: 1.0
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 1.0
+                warning: 1.0
+    officers:
+      description: Tables containing information about the officers of the company
+      tables:
+        officers:
+          columns:
+            company_number: string
+            person_number: string
+            name: string
+            officer_role: string
+            appointed_on: date
+            resigned_on: date
+            nationality: string
+            country_of_residence: string
+            is_pre_1992_appointment: boolean
+            birth_month: integer
+            birth_year: integer
+            address_premises: string
+            address_line_1: string
+            address_line_2: string
+            address_locality: string
+            address_region: string
+            address_postal_code: string
+            address_country: string
+            link_self: string
+            link_appointment: string
+            verification_start_on: date
+            verification_end_on: date
+            etag: string
+          quality:
+            primary_key: [link_self]
+            completeness:
+              - columns: [company_number, person_number, name, officer_role, appointed_on, link_self]
+                min: 1.0
+                warning: 1.0
+              - columns: [address_locality, address_postal_code]
+                min: 0.0
+                warning: 0.95
+              - columns: [address_line_1]
+                min: 0.0
+                warning: 0.99
+              - columns: [address_country]
+                min: 0.0
+                warning: 0.95
+              - columns: [nationality, country_of_residence, birth_month, birth_year]
+                min: 0.0
+                warning: 0.9
+            uniqueness:
+              - columns: [link_self]
+                min: 1.0
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 1.0
+                warning: 1.0
+    psc:
+      description: Tables containing information about the persons with significant control of the company
+      tables:
+        psc:
+          columns:
+            company_number: string
+            etag: string
+            name: string
+            kind: string
+            notified_on: date
+            ceased: boolean
+            ceased_on: date
+            nationality: string
+            country_of_residence: string
+            birth_year: integer
+            title: string
+            forename: string
+            surname: string
+            legal_form: string
+            legal_authority: string
+            country_registered: string
+            place_registered: string
+            registration_number: string
+            address_premises: string
+            address_line_1: string
+            address_line_2: string
+            address_locality: string
+            address_region: string
+            address_postal_code: string
+            address_country: string
+            link_self: string
+          quality:
+            primary_key: [link_self]
+            completeness:
+              - columns: [company_number, name, kind, notified_on, ceased, link_self]
+                min: 1.0
+                warning: 1.0
+              - columns: [address_line_1, address_locality, address_postal_code, address_country]
+                min: 0.0
+                warning: 1.0
+              - columns: [ceased_on]
+                min: 0.0
+                warning: 1.0
+
+              - columns: [legal_form, registration_number]
+                min: 0.0
+                warning: 1.0
+
+              - columns: [forename, surname]
+                min: 0.0
+                warning: 1.0
+
+            uniqueness:
+              - columns: [link_self]
+                min: 1.0
+                warning: 1.0
+            foreign_keys:
+              - columns: [company_number]
+                references:
+                  table: company_info.company
+                  columns: [company_number]
+                min: 1.0
+                warning: 1.0
+        psc_nature:
+          columns:
+            psc_id: string
+            nature_of_control: string
+          quality:
+            primary_key: [psc_id, nature_of_control]
+            completeness:
+              - columns: [psc_id, nature_of_control]
+                min: 1.0
+                warning: 1.0
+            uniqueness:
+              - columns: [psc_id, nature_of_control]
+                min: 1.0
+                warning: 1.0
+            foreign_keys:
+              - columns: [psc_id]
+                references:
+                  table: psc.psc
+                  columns: [link_self]
+                min: 1.0
+                warning: 1.0

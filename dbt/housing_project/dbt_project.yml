@@ -1,0 +1,27 @@
+name: 'housing_project'
+version: '1.0.0'
+profile: 'housing_project'
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+clean-targets: ["target", "dbt_packages"]
+vars:
+  obligation_warning_days: 30
+models:
+  housing_project:
+    +persist_docs:
+      relation: true
+      columns: true
+    intermediate:
+      +materialized: view
+      +on_schema_change: fail
+    gold:
+      +materialized: table
+
+seeds:
+  housing_project:
+    capital_comparison_rules:
+      +column_types:
+        filing_type: text
+        is_comparable: boolean

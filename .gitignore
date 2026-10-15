@@ -1,0 +1,57 @@
+# Local configuration and credentials
+.env
+.env.*
+.env-*
+!.env.example
+.aws/
+.codex/
+.agents/
+.vscode/
+.idea/
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+build/
+dist/
+
+# Generated pipeline data (keep data/contract.yml)
+data/raw/
+data/staging/
+data/logs/
+
+# Local Airflow runtime files
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.db-*
+airflow/simple_auth_manager_passwords.json
+
+# dbt build artifacts
+dbt/**/target/
+dbt/**/logs/
+dbt/**/dbt_packages/
+dbt/**/.user.yml
+
+# Scratch files and operating-system metadata
+.scratch/
+*.log
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.stackdump
+*.swp
+*.swo
+*.tmp
+*.bak
+*~
+*:Zone.Identifier

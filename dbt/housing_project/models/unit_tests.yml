@@ -1,0 +1,147 @@
+version: 2
+unit_tests:
+  - name: 'obligations_distinguish_due_today_overdue_and_unknown'
+    description: 'Una fecha límite de hoy no está vencida; una fecha pasada prevalece sobre un flag falso; sin fecha no se inventa estado.'
+    model: 'fct_company_obligation_snapshot'
+    given:
+      - input: 'ref(''int_company_observation'')'
+        rows:
+          - company_key: 'A'
+            observed_date: '2026-10-14'
+            observed_at: '2026-10-14 12:00:00+00'
+            next_accounts_due_on: '2026-10-14'
+            accounts_next_due: '2026-10-14'
+            next_accounts_period_end_on: null
+            accounts_next_made_up_to: null
+            next_accounts_overdue: false
+            accounts_overdue: false
+            confirmation_next_due: null
+            confirmation_next_made_up_to: null
+            confirmation_overdue: null
+          - company_key: 'B'
+            observed_date: '2026-10-14'
+            observed_at: '2026-10-14 12:00:00+00'
+            next_accounts_due_on: '2026-10-13'
+            accounts_next_due: '2026-10-13'
+            next_accounts_period_end_on: null
+            accounts_next_made_up_to: null
+            next_accounts_overdue: false
+            accounts_overdue: false
+            confirmation_next_due: null
+            confirmation_next_made_up_to: null
+            confirmation_overdue: null
+          - company_key: 'C'
+            observed_date: '2026-10-14'
+            observed_at: '2026-10-14 12:00:00+00'
+            next_accounts_due_on: null
+            accounts_next_due: null
+            next_accounts_period_end_on: null
+            accounts_next_made_up_to: null
+            next_accounts_overdue: null
+            accounts_overdue: null
+            confirmation_next_due: null
+            confirmation_next_made_up_to: null
+            confirmation_overdue: null
+    expect:
+      rows:
+        - company_key: 'A'
+          obligation_type_key: 'accounts'
+          days_until_due: 0
+          follow_up_status: 'due_soon'
+        - company_key: 'B'
+          obligation_type_key: 'accounts'
+          days_until_due: -1
+          follow_up_status: 'overdue'
+        - company_key: 'C'
+          obligation_type_key: 'accounts'
+          days_until_due: null
+          follow_up_status: 'unknown'
+        - company_key: 'A'
+          obligation_type_key: 'confirmation_statement'
+          days_until_due: null
+          follow_up_status: 'unknown'
+        - company_key: 'B'
+          obligation_type_key: 'confirmation_statement'
+          days_until_due: null
+          follow_up_status: 'unknown'
+        - company_key: 'C'
+          obligation_type_key: 'confirmation_statement'
+          days_until_due: null
+          follow_up_status: 'unknown'
+  - name: 'governance_counts_month_boundaries_and_empty_companies'
+    description: 'Incluye nombramiento el primer día, salida el último día y empresa sin directores.'
+    model: 'mart_governance_monthly'
+    given:
+      - input: 'ref(''int_company_months'')'
+        rows:
+          - company_key: 'A'
+            company_name: 'A'
+            month_start: '2026-09-01'
+            period_end: '2026-09-30'
+            is_partial_month: false
+          - company_key: 'B'
+            company_name: 'B'
+            month_start: '2026-09-01'
+            period_end: '2026-09-30'
+            is_partial_month: false
+      - input: 'ref(''fct_officer_appointment'')'
+        rows:
+          - company_key: 'A'
+            officer_role_key: 'director'
+            appointed_on: '2026-08-01'
+            resigned_on: null
+          - company_key: 'A'
+            officer_role_key: 'director'
+            appointed_on: '2026-09-01'
+            resigned_on: '2026-09-30'
+          - company_key: 'A'
+            officer_role_key: 'director'
+            appointed_on: '2026-09-30'
+            resigned_on: null
+    expect:
+      rows:
+        - company_key: 'A'
+          directors_at_start: 1
+          active_directors: 2
+          appointments: 2
+          resignations: 1
+          net_director_change: 1
+          average_active_tenure_days: "30.0000000000000000"
+        - company_key: 'B'
+          directors_at_start: 0
+          active_directors: 0
+          appointments: 0
+          resignations: 0
+          net_director_change: 0
+          average_active_tenure_days: null
+
+  - name: officer_role_labels_preserve_source_keys
+    model: dim_officer_role
+    given:
+      - input: source('staging', 'officers')
+        rows:
+          - {officer_role: director}
+          - {officer_role: corporate-director}
+          - {officer_role: corporate-director}
+    expect:
+      rows:
+        - {officer_role_key: director, role_label: Director}
+        - {officer_role_key: corporate-director, role_label: Corporate Director}
+
+  - name: control_labels_keep_qualifiers_and_unknown_rights
+    model: dim_control_nature
+    given:
+      - input: ref('int_psc_control_observation')
+        rows:
+          - {nature_of_control: ownership-of-shares-25-to-50-percent}
+          - {nature_of_control: voting-rights-75-to-100-percent-as-trust}
+          - {nature_of_control: right-to-appoint-and-remove-directors-as-firm}
+          - {nature_of_control: significant-influence-or-control}
+          - {nature_of_control: future-control-right}
+    expect:
+      rows:
+        - {control_nature_key: ownership-of-shares-25-to-50-percent, control_nature_label: Ownership Of Shares 25 To 50 Percent, control_category: Ownership}
+        - {control_nature_key: voting-rights-75-to-100-percent-as-trust, control_nature_label: Voting Rights 75 To 100 Percent As Trust, control_category: Voting}
+        - {control_nature_key: right-to-appoint-and-remove-directors-as-firm, control_nature_label: Right To Appoint And Remove Directors As Firm, control_category: Appointment rights}
+        - {control_nature_key: significant-influence-or-control, control_nature_label: Significant Influence Or Control, control_category: Significant influence}
+        - {control_nature_key: future-control-right, control_nature_label: Future Control Right, control_category: Other}
