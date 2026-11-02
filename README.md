@@ -4,6 +4,8 @@ This project turns public Companies House records into a clearer picture of how 
 
 The pipeline takes the data from the API through Python processing and PostgreSQL storage to dbt models and Metabase visualizations. The aim is to make those records easier to explore while keeping the detail needed to understand each result.
 
+[![CI](https://github.com/rojzzzzz/Companies-Housing-Project/actions/workflows/ci.yml/badge.svg)](https://github.com/rojzzzzz/Companies-Housing-Project/actions/workflows/ci.yml)
+
 ## Companies covered
 
 The project follows these four companies, identified by their Companies House numbers in the [data contract](data/contract.yml):
